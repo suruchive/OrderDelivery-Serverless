@@ -1,0 +1,77 @@
+service: serverless-node-rest-api
+
+provider:
+  name: aws
+  runtime: nodejs10.x
+  environment:
+    DYNAMODB_TABLE: ${self:service}-orderDelivery-${opt:stage, self:provider.stage}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
+
+functions:
+  create:
+    handler: orderDelivery/create.create
+    events:
+      - http:
+          path: orderDelivery
+          method: post
+          cors: true
+
+  list:
+    handler: orderDelivery/list.list
+    events:
+      - http:
+          path: orderDelivery
+          method: get
+          cors: true
+
+  get:
+    handler: orderDelivery/get.get
+    events:
+      - http:
+          path: orderDelivery/{id}
+          method: get
+          cors: true
+
+  update:
+    handler: orderDelivery/update.update
+    events:
+      - http:
+          path: orderDelivery/{id}
+          method: put
+          cors: true
+
+  delete:
+    handler: orderDelivery/delete.delete
+    events:
+      - http:
+          path: orderDelivery/{id}
+          method: delete
+          cors: true
+
+resources:
+  Resources:
+    DeliveryTable:
+      Type: AWS::DynamoDB::Table
+      DeletionPolicy: Retain # Keeps around the DynamoDB resource when we redeploy/destroy
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: id
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:provider.environment.DYNAMODB_TABLE}
